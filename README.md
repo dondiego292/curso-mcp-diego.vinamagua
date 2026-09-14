@@ -1,7 +1,24 @@
 ```markdown
 ## Environment check — Class 1
 
+## Environment Check — Class 1
 
+El entorno de desarrollo fue verificado correctamente:
+
+| Component                    | Status | Detail                                                 |
+| ---------------------------- | ------ | ------------------------------------------------------ |
+| Python 3.12                  | ✅ OK   | 3.12.14                                                |
+| uv                           | ✅ OK   | uv 0.12.7 (61291a8ca 2026-08-27, aarch64-apple-darwin) |
+| Git                          | ✅ OK   | git version 2.50.1 (Apple Git-155)                     |
+| Docker                       | ✅ OK   | Docker version 28.1.1, build 4eba377                   |
+| `.gitignore` protects `.env` | ✅ OK   | `.env` está protegido                                  |
+
+### Resultado
+
+> **Environment ready. See you in Class 2.**
+
+El entorno está listo para continuar con la **Clase 2**.
+                   
 
 Haz un último commit y push:
 
