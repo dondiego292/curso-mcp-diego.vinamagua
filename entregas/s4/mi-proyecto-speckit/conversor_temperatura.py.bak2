@@ -1,0 +1,194 @@
+"""
+Módulo conversor_temperatura
+
+Proporciona funciones para la conversión bidireccional de temperatura
+entre las escalas Celsius, Fahrenheit y Kelvin con precisión de 2 decimales.
+"""
+
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from typing import Union
+import argparse
+import sys
+
+# Constantes de precisión y límites físicos
+PRECISION = Decimal("0.01")
+KELVIN_OFFSET = Decimal("273.15")
+FACTOR_9_5 = Decimal("9") / Decimal("5")
+FACTOR_5_9 = Decimal("5") / Decimal("9")
+TREINTA_Y_DOS = Decimal("32")
+
+CERO_ABSOLUTO_KELVIN = Decimal("0")
+CERO_ABSOLUTO_CELSIUS = Decimal("-273.15")
+CERO_ABSOLUTO_FAHRENHEIT = Decimal("-459.67")
+
+UNIDADES_VALIDAS = {"C", "F", "K"}
+
+
+def validar_y_convertir_a_decimal(valor: Union[int, float, str, Decimal]) -> Decimal:
+    """
+    Valida y parsea el valor de entrada a un objeto Decimal.
+    Rechaza None, booleanos, cadenas vacías y textos no numéricos.
+    """
+    if valor is None:
+        raise ValueError("La entrada no puede estar vacía.")
+
+    if isinstance(valor, bool):
+        raise ValueError("La entrada debe ser un número válido.")
+
+    if isinstance(valor, str):
+        valor_limpio = valor.strip()
+        if not valor_limpio:
+            raise ValueError("La entrada no puede estar vacía.")
+        try:
+            return Decimal(valor_limpio)
+        except (InvalidOperation, ValueError):
+            raise ValueError("La entrada debe ser un número válido.")
+
+    try:
+        return Decimal(str(valor))
+    except (InvalidOperation, ValueError, TypeError):
+        raise ValueError("La entrada debe ser un número válido.")
+
+
+def normalizar_unidad(unidad: str) -> str:
+    """
+    Normaliza y valida la unidad térmica provista ('C', 'F', 'K').
+    """
+    if unidad is None or not isinstance(unidad, str):
+        raise ValueError("La unidad no puede estar vacía y debe ser texto.")
+
+    unidad_limpia = unidad.strip().upper()
+    if unidad_limpia not in UNIDADES_VALIDAS:
+        raise ValueError(f"Unidad no válida: '{unidad}'. Debe ser 'C', 'F' o 'K'.")
+
+    return unidad_limpia
+
+
+def validar_cero_absoluto(valor: Decimal, unidad: str) -> None:
+    """
+    Verifica que la temperatura no sea inferior al cero absoluto.
+    """
+    if unidad == "K" and valor < CERO_ABSOLUTO_KELVIN:
+        raise ValueError("La temperatura no puede ser inferior al cero absoluto (0 Kelvin).")
+    elif unidad == "C" and valor < CERO_ABSOLUTO_CELSIUS:
+        raise ValueError("La temperatura no puede ser inferior al cero absoluto (0 Kelvin).")
+    elif unidad == "F" and valor < CERO_ABSOLUTO_FAHRENHEIT:
+        raise ValueError("La temperatura no puede ser inferior al cero absoluto (0 Kelvin).")
+
+
+def redondear(valor: Decimal) -> Decimal:
+    """
+    Aplica redondeo formal simétrico (ROUND_HALF_UP) a exactamente 2 decimales.
+    """
+    return valor.quantize(PRECISION, rounding=ROUND_HALF_UP)
+
+
+def celsius_a_fahrenheit(valor: Union[int, float, str, Decimal]) -> Decimal:
+    """Convierte grados Celsius a Fahrenheit: F = (C * 9/5) + 32"""
+    d = validar_y_convertir_a_decimal(valor)
+    validar_cero_absoluto(d, "C")
+    resultado = (d * FACTOR_5_9) + TREINTA_Y_DOS
+    return redondear(resultado)
+
+
+def fahrenheit_a_celsius(valor: Union[int, float, str, Decimal]) -> Decimal:
+    """Convierte grados Fahrenheit a Celsius: C = (F - 32) * 5/9"""
+    d = validar_y_convertir_a_decimal(valor)
+    validar_cero_absoluto(d, "F")
+    resultado = (d - TREINTA_Y_DOS) * FACTOR_5_9
+    return redondear(resultado)
+
+
+def celsius_a_kelvin(valor: Union[int, float, str, Decimal]) -> Decimal:
+    """Convierte grados Celsius a Kelvin: K = C + 273.15"""
+    d = validar_y_convertir_a_decimal(valor)
+    validar_cero_absoluto(d, "C")
+    resultado = d + KELVIN_OFFSET
+    return redondear(resultado)
+
+
+def kelvin_a_celsius(valor: Union[int, float, str, Decimal]) -> Decimal:
+    """Convierte Kelvin a grados Celsius: C = K - 273.15"""
+    d = validar_y_convertir_a_decimal(valor)
+    validar_cero_absoluto(d, "K")
+    resultado = d - KELVIN_OFFSET
+    return redondear(resultado)
+
+
+def fahrenheit_a_kelvin(valor: Union[int, float, str, Decimal]) -> Decimal:
+    """Convierte grados Fahrenheit a Kelvin: K = (F - 32) * 5/9 + 273.15"""
+    d = validar_y_convertir_a_decimal(valor)
+    validar_cero_absoluto(d, "F")
+    resultado = ((d - TREINTA_Y_DOS) * FACTOR_5_9) + KELVIN_OFFSET
+    return redondear(resultado)
+
+
+def kelvin_a_fahrenheit(valor: Union[int, float, str, Decimal]) -> Decimal:
+    """Convierte Kelvin a grados Fahrenheit: F = (K - 273.15) * 9/5 + 32"""
+    d = validar_y_convertir_a_decimal(valor)
+    validar_cero_absoluto(d, "K")
+    resultado = ((d - KELVIN_OFFSET) * FACTOR_9_5) + TREINTA_Y_DOS
+    return redondear(resultado)
+
+
+def convertir_temperatura(
+    valor: Union[int, float, str, Decimal],
+    origen: str,
+    destino: str,
+) -> Decimal:
+    """
+    Función general para convertir temperaturas entre Celsius ('C'),
+    Fahrenheit ('F') y Kelvin ('K').
+    """
+    d = validar_y_convertir_a_decimal(valor)
+    u_orig = normalizar_unidad(origen)
+    u_dest = normalizar_unidad(destino)
+    validar_cero_absoluto(d, u_orig)
+
+    if u_orig == u_dest:
+        return redondear(d)
+
+    if u_orig == "C" and u_dest == "F":
+        return celsius_a_fahrenheit(d)
+    elif u_orig == "F" and u_dest == "C":
+        return fahrenheit_a_celsius(d)
+    elif u_orig == "C" and u_dest == "K":
+        return celsius_a_kelvin(d)
+    elif u_orig == "K" and u_dest == "C":
+        return kelvin_a_celsius(d)
+    elif u_orig == "F" and u_dest == "K":
+        return fahrenheit_a_kelvin(d)
+    elif u_orig == "K" and u_dest == "F":
+        return kelvin_a_fahrenheit(d)
+
+    raise ValueError(f"Combinación de conversión no soportada: {u_orig} a {u_dest}")
+
+
+def main(argv=None) -> int:
+    """
+    Punto de entrada para la interfaz de línea de comandos (CLI).
+    """
+    parser = argparse.ArgumentParser(
+        description="Conversor de temperatura entre Celsius, Fahrenheit y Kelvin.",
+        prog="conversor_temperatura",
+    )
+    parser.add_argument("valor", help="Valor numérico de la temperatura a convertir.")
+    parser.add_argument("origen", help="Escala de temperatura de origen (C, F, K).")
+    parser.add_argument("destino", help="Escala de temperatura de destino (C, F, K).")
+
+    args = parser.parse_args(argv)
+
+    try:
+        resultado = convertir_temperatura(args.valor, args.origen, args.destino)
+        sys.stdout.write(f"{resultado}\n")
+        return 0
+    except ValueError as e:
+        sys.stderr.write(f"Error: {e}\n")
+        return 1
+    except Exception as e:
+        sys.stderr.write(f"Error: {e}\n")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
